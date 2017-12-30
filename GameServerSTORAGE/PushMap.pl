@@ -149,7 +149,7 @@ my $Page = $Browser->request(POST $URLtoPostTo,\%Fields);
 # Print the returned page (or an error message).
 #print "Content-type: text/html\n\n";
 if ($Page->is_success) { print "Success. \n"; }
-else { print $Page->message; }
+else { print $Page->message . "\n"; }
 #if ($Page->is_success) { print $Page->content; }
 #else { print $Page->message; }
 
