@@ -371,12 +371,12 @@ if (!$typeclass) { $typeclass="Random"; } #make something up (demo mode)
 if (!$sizeclass) { $sizeclass=1; } #size
 
 if ($typeclass eq "LargeShip") { $colorcode="0xc91700"; } #red
-if ($typeclass eq "Station") { $colorcode="0xFFF00"; } #yellow
+if ($typeclass eq "Station" || $typeclass eq "LargeStation" ) { $colorcode="0xFFF00"; } #yellow
 if ($typeclass eq "Player") { $colorcode="0xcc39af"; } # purple/pink
 if ($typeclass eq "Asteroid") { $colorcode="0x5b5c5b"; } # grey
-if ($typeclass eq "SmallShip") { $colorcode="0xff8c19"; } #orange
+if ($typeclass eq "SmallShip" || $typeclass eq "SmallStation") { $colorcode="0xff8c19"; } #orange
 
-if ($typeclass eq "Station") {  
+if ($typeclass eq "Station" || $typeclass eq "LargeStation") {  
 	print "	var geometry = new THREE.CylinderGeometry($sizeclass,$sizeclass, $sizeclass*2);"; 
 	#print "	var geometry = new THREE.OctahedronGeometry($sizeclass, 0);"; 
 	#print ' var textureLoader=new THREE.TextureLoader();';
@@ -387,7 +387,7 @@ if ($typeclass eq "Station") {
 		var mesh = new THREE.Mesh( geometry, material );';	
 } 
 else { 
-	if ($typeclass eq "LargeShip" || $typeclass eq "SmallShip") {  
+	if ($typeclass eq "LargeShip" || $typeclass eq "SmallShip" || $typeclass eq "SmallStation") {  
 		print "	var geometry = new THREE.TetrahedronGeometry($sizeclass, 0);"; 
 		print '	var material = new THREE.MeshBasicMaterial({wireframe: true, color: '."$colorcode".'}); 
 			var mesh = new THREE.Mesh( geometry, material );'; 
@@ -439,7 +439,7 @@ print '
 	
 	camera.position.x = 0;
 	camera.position.y = 0;
-	camera.position.z = 4800000;
+	camera.position.z = 800000;
 	//camera.setViewOffset (1, 1, 0, 2, 1, 1 );
 	
 	//render loop
@@ -522,12 +522,12 @@ my $serverdetail='';
 		  }              	
                      	
               	#insert known objects into the array
-		if ($objecttype eq 'SmallShip') { $smallgrids++; } #small grid ship
+		if ($objecttype eq 'SmallShip' || $objecttype eq "SmallStation") { $smallgrids++; } #small grid ship
 		if ($objecttype eq 'Planet') {  $planets++; } #Planet				
 		if ($objecttype eq 'Asteroid') {  $asteroids++; } #asteroid
 		if ($objecttype eq 'LargeShip') {  $largeships++; } #large grid ship
 		if ($objecttype eq 'Player') { $characters++ } # Character/Player
-		if ($objecttype eq 'Station') { $stations++; } # Station
+		if ($objecttype eq 'Station' || $objecttype eq "LargeStation" ) { $stations++; } # Station
 		$line++;
 	}
 
@@ -623,7 +623,7 @@ sub showsector {
              	} 
              	
              	#smallgrid ship orange
-             	if ($objecttype eq 'SmallShip') { 
+             	if ($objecttype eq 'SmallShip' || $objecttype eq "SmallStation") { 
              		#print "// !debug $objectsize";
              		if ($objectsize<1) { $sizeclass=1; }
              		if ($objectsize>=1) { $sizeclass=1; }
@@ -639,7 +639,7 @@ sub showsector {
              	} 
              	
              	#station yellow
-             	if ($objecttype eq 'Station') { 
+             	if ($objecttype eq 'Station' || $objecttype eq "LargeStation" ) { 
              		if ($objectsize>=1) { $sizeclass=2; }
              		if ($objectsize>=25) { $sizeclass=3; }
              		if ($objectsize>=50) { $sizeclass=6; } 
@@ -657,11 +657,11 @@ sub showsector {
              	#asteroid
              	if ($objecttype eq 'Asteroid') { 
              		
-             		if ($objectsize<=127) { $sizeclass=11; } 
+             		if ($objectsize<=127) { $sizeclass=10; } 
              		if ($objectsize>=128) { $sizeclass=14; }
-             		if ($objectsize>=256) { $sizeclass=24; }
-             		if ($objectsize>=512) { $sizeclass=48; } 
-             		if ($objectsize>=700) { $sizeclass=68; } 
+             		if ($objectsize>=256) { $sizeclass=16; }
+             		if ($objectsize>=512) { $sizeclass=38; } 
+             		if ($objectsize>=700) { $sizeclass=58; } 
              		addobject("Asteroid", $sizeclass, $x, $y, $z);
              	 } 
              	
@@ -762,7 +762,7 @@ print " $dumpfile";
 		if ($objecttype eq 'Asteroid') { $map[$x][$y][$z]='<img src="roid.gif">'; $asteroids++; } #asteroid
 		if ($objecttype eq 'LargeShip') { $map[$x][$y][$z]='<img src="redx.gif">'; $largeships++; } #large grid ship
 		if ($objecttype eq 'Player') { $map[$x][$y][$z]='<img src="char.gif">'; $characters++ } # Character/Player
-		if ($objecttype eq 'Station') { $map[$x][$y][$z]='<img src="blob.gif">'; $stations++; } # Station
+		if ($objecttype eq 'Station' || $objecttype eq "LargeStation" ) { $map[$x][$y][$z]='<img src="blob.gif">'; $stations++; } # Station
 		
                 #print "<A href=\"?x=$x\&y=$y\&tile=$type\&level=$level\&owner=$owner\&alliance=".
 		#		"$alliance\&state=$state\&comment=$comment\">$tile</a>";
