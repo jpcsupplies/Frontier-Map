@@ -23,7 +23,7 @@ use CGI qw(:standard);
 #Init major variables and settings
 ##################################
 
-my $mode=param('mode');
+my $mode=param('mode'); #update, read or register
 my $network=param('network');
 my $ID=param('ID');
 my $key=param('key');
@@ -40,9 +40,7 @@ my $timestamp = sprintf("%4d-%02d-%02d %02d:%02d:%02d ",$year+1900,$mon+1,$mday,
 #########################
 # print our html header.
 #########################
-
 print header();
-print '<html>';
 
 
 ##########################################
@@ -51,7 +49,6 @@ print '<html>';
 
 if (!$mode) { $mode = "read"; }
 if (!$MapData) { $mode = "read"; }
-
 
 
 ######################
@@ -82,80 +79,133 @@ close(TDATA);
 ##################################################
 #generate debug output and populate mapinfo fields
 ##################################################
-print "<b>Debugging 0 info:</b><br><pre>
-[$IP] via [$actualpage]. 
-Mode requested: [$mode]. 
-Docroot: [$ENV{DOCUMENT_ROOT}] 
-Pathinfo: [$ENV{PATH_INFO}]
-Path translated: [$ENV{PATH_TRANSLATED}]
-Server: [$ENV{SERVER_NAME}] 
-Script: [$ENV{SCRIPT_NAME}]  
-Cgi request: [$ENV{QUERY_STRING}]
-My Script: [$ownpage]
-Debug file: [$page]</pre>";
-print $timestamp;
+#seperate first 4 fields by | deliminer assign everything else to $mapping#
+my ($servername, $mapname, $ipport, $description, $mapping)=split(/\|/,$MapData,5); 
+my ($localip,$port)=split(/:/,$ipport,2);
+my $steamconnect=join(':',$IP,$port);
+$steamconnect=~ s/ //g; #remove whitepaces
 
-if ($mode eq "update") { 
-# open index file and load into memory, close index file
-
-# check if supplied data matches existing data or if we need to add it ?
-
-#network, grid, server details ip name etc, key, filename
-#network will populate galaxy list selection box?
-
-#what we should be doing here is checking index file grid $ID to see if $key matches THEN updating the appropriate map csv file
-#if it is a new server in the group and key is valid attempt to allocate desired Grid id, otherwise (fail) ?  or should i tell pushmap back to update their ID?
-#may be better to generate an orphan map index to allow admins to manually assign a grid id?
-#the index for $ID should append the $steamconnect info to $key (which itself is generated off physical ip not what pushmap tells us)
-#so that even if someone sniffs the key and tries to update THEIR map using it, it will just be ignored as invalid -
-#in this way if the key gets accidentally leaked it can't be used to trash an existing servers map; or rogue/idiot admins cant both update the same map sector
-#we will also need an additional way to prevent a leaked key being used to fill all the vacant sectors too.. :/
-#how about a different key to register a sector from a webpage ? This then gives them the server key to use?
-
-#default universe size 10x10 ? allows up to 100 servers.
-#so using my old game RPG engine logic to navigate a cube -
-#going DOWN = +100, going up=  -100, going backwards = -10, going forwards = +10, going left = -1, right = +1
-#data validation if > 1000, if <0, (ignore) AND we also need to stop people trying to fly off into nulspace eg if someone at the right most side (10/20/30/40/50/60/70/80/90/100) tries to go right (ignore)
-#if someone at the back (1-10) tries to go backwards (ignore)  if someone at the front (91-100) tries to go forwards (ignore) if someone on the left (01/11/21/31/41/51/61/71/81/91) (ignore)
-
-open(TDATA, ">$page")  or die "File Error $!"; 
-	#seperate first 4 fields by | deliminer assign everything else to $mapping#
-        my ($servername, $mapname, $ipport, $description, $mapping)=split(/\|/,$MapData,5); 
-        my ($localip,$port)=split(/:/,$ipport,2);
-        my $steamconnect=join(':',$IP,$port);
-        $steamconnect=~ s/ //g; #remove whitepaces
-	print TDATA "Last Update: $timestamp\nGameserver: [$steamconnect] \nKey [$key]\nNetwork: $network \nRequests Grid: $ID \nServername: $servername \nMapname: $mapname \nIPPORT: $ipport \nDescription: $description\n";
-	#print TDATA "\nData Dump: \n$MapData\n";
-	print TDATA "\nMap Dump: \n$mapping\n";
-	print TDATA "\n";
- close(TDATA); 
- 
- #here we actually write to the live map#
- my $livefile="Live.csv";
- open(TDATA, ">$livefile")  or die "File Error $!"; 
-	print TDATA $MapData;
-	print TDATA "\n";
- close(TDATA); 
+#we may need a delete option here instead of reset ?
+if ($mode eq "register") { 
+	#this allows a player/admin to add their own region of the galaxy
+	print "register|This is an example reply for register";
+	#check index file for a $network region of this name create it if not.
+	#
+	#return fail if it aready exists
+	# basically write the network, id, server, map, ip, encoded key etc to the index, and generate a mapfile to update into
+	# probably should make the mapfile random or place it in a protected folder, or use a file extension that cannot be viewed
 }
 
+if ($mode eq "reset") { 
+	#this caters for if the servername or mapname or steamconnect IP or Grid ID changes and needs to be updated to continue map updates
+	#passkey and at least ID, IP or servername/mapname must match an existing server.
+	print "reset|$network|$ID|$steamconnect";
+	#check index file for an ID that doesnt match $steamconnect and would otherwise fail - update $steamconnect to new address
+	#check index file for an entry that matches $steamconnect but does not match ID - update ID to new ID
+	#check index file for an entry that doesnt match servername or mapname, but matches $steamconnect - update server name or mapname
+}
 
+if ($mode eq "update") { 
+	# open index file and load into memory, close index file
+
+	# check if supplied data matches existing data or if we need to add it ?
+
+	#network, grid, server details ip name etc, key, filename
+	#network will populate galaxy list selection box?
+
+	#what we should be doing here is checking index file grid $ID to see if $key matches THEN updating the appropriate map csv file
+	#if it is a new server in the group and key is valid attempt to allocate desired Grid id, otherwise (fail) ?  or should i tell pushmap back to update their ID?
+	#may be better to generate an orphan map index to allow admins to manually assign a grid id?
+	#the index for $ID should append the $steamconnect info to $key (which itself is generated off physical ip not what pushmap tells us)
+	#so that even if someone sniffs the key and tries to update THEIR map using it, it will just be ignored as invalid -
+	#in this way if the key gets accidentally leaked it can't be used to trash an existing servers map; or rogue/idiot admins cant both update the same map sector
+	#we will also need an additional way to prevent a leaked key being used to fill all the vacant sectors too.. :/
+	#how about a different key to register a sector from a webpage ? This then gives them the server key to use?
+
+	#default universe size 10x10 ? allows up to 100 servers.
+	#so using my old game RPG engine logic to navigate a cube -
+	#going DOWN = +100, going up=  -100, going backwards = -10, going forwards = +10, going left = -1, right = +1
+	#data validation if > 1000, if <0, (ignore) AND we also need to stop people trying to fly off into nulspace 
+	#eg if someone at the right most side (10/20/30/40/50/60/70/80/90/100) tries to go right (ignore)
+	#if someone at the back (1-10) tries to go backwards (ignore)  if someone at the front (91-100) tries to go forwards (ignore) 
+	#if someone on the left (01/11/21/31/41/51/61/71/81/91) (ignore)
+
+
+
+
+	##########################################
+	# If we need to return info to game server
+	##########################################
+	#for this we first check if there is work waiting for this server or if it is an invalid server
+	#
+	#my $reason="Unknown Server, Sector ID, Network or authentication key"; # Wrong passcode, Unknown server etc 
+	
+	#tasktype|id
+	#fail = credentials do not match - check if server is being registered or updated to new IP eg fail|
+	#ship = please spawn this ship in eg ship|ownersteamid|http path to ship xml or shipdata?
+	#money = please give player x money  eg money|steamid|balance
+	#print "fail|$reason|$network|$ID|$steamconnect|$servername|$mapname";
+
+
+	#########################################
+	# If all is well update the galactic map
+	#########################################
+	open(TDATA, ">$page")  or die "File Error $!"; 
+
+		print TDATA "Last Update: $timestamp\nGameserver: [$steamconnect] \nKey [$key]\nNetwork: $network \nRequests Grid: $ID \nServername: $servername \nMapname: $mapname \nIPPORT: $ipport \nDescription: $description\n";
+		#print TDATA "\nData Dump: \n$MapData\n";
+		print TDATA "\nMap Dump: \n$mapping\n";
+		print TDATA "\n";
+ 	close(TDATA); 
+ 
+ 	#here we actually write to the live map#
+ 	my $livefile="Live.csv";
+ 	open(TDATA, ">$livefile")  or die "File Error $!"; 
+		print TDATA $MapData;
+		print TDATA "\n";
+ 	close(TDATA); 
+
+
+
+}
 #############################################
 # Debug - display last map dump data received
 #############################################
-print '<p>Messages<br><hr><textarea rows="50" cols="120">';
-open(TDATA, $page) or die "File Error $!";
-while (<TDATA>) {
-	$tdata=$_;
-	print "$tdata";
- }
-close(TDATA);
-print '</textarea></p><hr>End.';
 
 
-#############################
-# end of script end the html
-#############################
-print end_html;
+if ($mode eq "read") {
+	print start_html(-title=>'Map Debug');
+	#print '<html><body>';
+	print "<b>Debugging 0 info:</b><br><pre>
+	[$IP] via [$actualpage]. 
+	Mode requested: [$mode]. 
+	Docroot: [$ENV{DOCUMENT_ROOT}] 
+	Pathinfo: [$ENV{PATH_INFO}]
+	Path translated: [$ENV{PATH_TRANSLATED}]
+	Server: [$ENV{SERVER_NAME}] 
+	Script: [$ENV{SCRIPT_NAME}]  
+	Cgi request: [$ENV{QUERY_STRING}]
+	My Script: [$ownpage]
+	Debug file: [$page]
+	$timestamp</pre>";
+	
+
+	print '<p>Messages<br><hr><textarea rows="50" cols="120">';
+	open(TDATA, $page) or die "File Error $!";
+	while (<TDATA>) {
+		$tdata=$_;
+		print "$tdata";
+ 	}
+	close(TDATA);
+	print '</textarea></p><hr>End.';
+	
+	#############################
+	# end of script end the html
+	#############################
+	print end_html;
+}
+
+print footer();
 
 
 #############
