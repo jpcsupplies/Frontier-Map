@@ -40,14 +40,14 @@ open(TDATA, $adminsettings) or die "File Error $!";
 close(TDATA);
 
 if (!$setup_data) { 
-print ".No Configuration in $adminsettings file - creating default placeholders\n
-Please note you should edit '$adminsettings'  to correctly configure your Space sector. 
-This tool needs to be ran from your maps STORAGE folder and/or where 
-the $dumpfile is being created.\n";
-$setup_data='Network Name,Requested Grid ID #,passkey,update time in minutes'; 
-open(TDATA, ">>$adminsettings")  or die "File Error $!";;
-	print TDATA $setup_data;
-close(TDATA);
+	print ".No Configuration in $adminsettings file - creating default placeholders\n";
+	print "Please note you should edit '$adminsettings'  to correctly configure your Space sector.\n"; 
+	print "This tool needs to be ran from your maps STORAGE folder and/or where \n";
+	print "the $dumpfile is being created.\n";
+	$setup_data='Network Name,Requested Grid ID #,passkey,update time in minutes'; 
+	open(TDATA, ">>$adminsettings")  or die "File Error $!";;
+		print TDATA $setup_data;
+	close(TDATA);
 }
 
 
@@ -86,72 +86,77 @@ sub sendmap {
 	$timestamp = sprintf("%4d-%02d-%02d %02d:%02d:%02d ",$year+1900,$mon+1,$mday,$hour,$min,$sec);
     	print "$timestamp- Update.. ";
 
-#load our map file dump entire thing in memory location
-my $tdata=""; my $raw_data="";
-open(TDATA, $dumpfile) or die "File Error $!";
-	while (<TDATA>) {
-		$tdata=$_;
-		$raw_data = $raw_data . $tdata;
+	#load our map file dump entire thing in memory location
+	my $tdata=""; my $raw_data="";
+	open(TDATA, $dumpfile) or die "File Error $!";
+		while (<TDATA>) {
+			$tdata=$_;
+			$raw_data = $raw_data . $tdata;
 		
  	}
-close(TDATA);
+	close(TDATA);
 
 
-#here we generate a passkey to check on the server this mapdata is legitimate
-#chr() ord()
-#print "Raw: $raw_key\n";
+	#here we generate a non-reversable reproducable passkey to check on the server this mapdata is legitimate
+	#this also allows us to conceal the passkey server side at a late time
+	#chr() ord() 	#print "Raw: $raw_key\n";
 
-my $encode=$net_name . $raw_key;
-my @ascii_codes = unpack("C*", $encode);
-#print "Code: @ascii_codes\n";
+	my $encode=$net_name . $raw_key;
+	my @ascii_codes = unpack("C*", $encode);
+	#print "\nEncode: $encode\n"; #print "Code: @ascii_codes\n";
 
-my $key=scalar(@ascii_codes);
-#print "Count: $key\n";
+	my $key=scalar(@ascii_codes); #print "keycount: $key\n";
+	$key*=1.1415; #print "Scramblekey: $key\n";
 
-my $code_count=0; my $final_key="";
-foreach my $loop (@ascii_codes) {
-$ascii_codes[$code_count]*=$key;
-$final_key=$final_key.$ascii_codes[$code_count];
-$code_count++;
-}
+	my $code_count=0; my $final_key=""; my $key_filter="";
+	foreach my $loop (@ascii_codes) {
 
-#print "$final_key\n";
-#print "@ascii_codes\n";
+		#lets scramble it 
+		$key_filter= $ascii_codes[$code_count]*=$key; 
 
-my $word = pack("C*", @ascii_codes);
-#$word = pack("C*", 115, 97, 109, 112, 108, 101);   # same
-#print "$word\n";
+		#lets drop the decimal, and reduce it to a semi random integer number of managable size further scrambling it
+		$key_filter=~ s/\.//; $key_filter*=0.000128; $key_filter=int($key_filter); 
 
+		#lets build our irreversable key off it
+		$final_key=$final_key . $key_filter; # $ascii_codes[$code_count];
+		$code_count++;
+	}
 
-# Prepare our data bundle with the map data and any special info
-#   the left of the => symbol and the value on the right.
-my %Fields = (
-   "network" => $net_name,
-   "ID" => $grid_id,
-   "MapData" => $raw_data,
-   "mode" => "update",
-   "key" => $final_key,
-);
-# As seen above, "@" must be \@ escaped when quoted.
+	#print "Final Key: $final_key\n"; #print "Ascii style: @ascii_codes\n";
+	#my $word = pack("C*", @ascii_codes);
+	#$word = pack("C*", 115, 97, 109, 112, 108, 101);   # same
+	#print "$word\n";
 
 
-#finalise map update and send it to the galaxy map server
+	# Prepare our data bundle with the map data and any special info
+	#   the left of the => symbol and the value on the right.
+	my %Fields = (
+   		"network" => $net_name,
+   		"ID" => $grid_id,
+   		"MapData" => $raw_data,
+   		"mode" => "update",
+   		"key" => $final_key,
+	);
+	# As seen above, "@" must be \@ escaped when quoted.
 
-# Create the browser that will post the information.
-my $Browser = new LWP::UserAgent;
 
-# Insert the browser name, if specified.
-if($BrowserName) { $Browser->agent($BrowserName); }
+	#finalise map update and send it to the galaxy map server
 
-# Post the information to the CGI program.
-my $Page = $Browser->request(POST $URLtoPostTo,\%Fields);
+	# Create the browser that will post the information.
+	my $Browser = new LWP::UserAgent;
 
-# Print the returned page (or an error message).
-#print "Content-type: text/html\n\n";
-if ($Page->is_success) { print "Success. \n"; }
-else { print $Page->message . "\n"; }
-#if ($Page->is_success) { print $Page->content; }
-#else { print $Page->message; }
+	# Insert the browser name, if specified.
+	if($BrowserName) { $Browser->agent($BrowserName); }
+
+	# Post the information to the CGI program.
+	my $Page = $Browser->request(POST $URLtoPostTo,\%Fields);
+
+	# Print the returned page (or an error message).
+	#print "Content-type: text/html\n\n";
+	if ($Page->is_success) { print "Success. \n"; }
+	else { print $Page->message . "\n"; }
+	#if ($Page->is_success) { print $Page->content; }
+	#else { print $Page->message; }
 
 }
 
