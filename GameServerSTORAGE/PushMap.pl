@@ -118,7 +118,7 @@ sub check_setup(){
 		print "Please note you should edit '$adminsettings'  to correctly configure your Space sector.\n"; 
 		print "This tool needs to be ran from your maps STORAGE folder and/or where \n";
 		print "the $dumpfile is being created.\n";
-		$setup_data='Network Name,Requested Grid ID #,passkey,update time in minutes'; 
+		$setup_data='Netw0rk_Name,Requested Grid ID #,passkey,update time in minutes'; 
 		open(TDATA, ">>$adminsettings")  or die "File Error $!";
 			print TDATA $setup_data;
 		close(TDATA);
@@ -234,7 +234,7 @@ sub sendmap {
 			print "\n\nRequest Failed - ";
 			
 			my ($reason, $network, $sectorID, $steamconnect, $servername, $mapname)=split(/\|/,$details,6);
-			print "$reason\nPlease check settings\n\n$network Region, Sector/Grid ID: $sectorID\n$servername - $mapname\nJump Address: $steamconnect\n";
+			print "$reason\nPlease check settings\n\nRegion: $network Network, Sector/Grid ID: $sectorID\nSector: $servername - $mapname\nJump Address: $steamconnect\n";
 		}
 		if ($task eq "register") { 
 			print "\nRegister request accepted - Please note following details: \n$details";

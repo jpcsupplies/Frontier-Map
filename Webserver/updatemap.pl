@@ -111,16 +111,16 @@ close(TDATA);
 
 foreach $cur_line (@index_raw)
 	{
-	$cur_line =~ s/\r|\n//g; #remove end of line codes
-	@current_line=split(/,/,$cur_line); #split current line by commas
+		$cur_line =~ s/\r|\n//g; #remove end of line codes
+		@current_line=split(/,/,$cur_line); #split current line by commas
 
-	# make sure its not the file header and check if its a known network
-	if (($current_line[0] eq $network) && ($current_line[0] ne 'Netw0rk')) { $valid_network="true"; }
+		# make sure its not the file header and check if its a known network
+		if (($current_line[0] eq $network) && ($current_line[0] ne 'Netw0rk')) { $valid_network="true"; }
 	
-	#for later - may not need above logic can be recycled
-	#we leave the commas to split later if needed
-	#$index[$linecount]=$cur_line;
-	#$linecount++;
+		#for later - may not need above logic can be recycled
+		#we leave the commas to split later if needed
+		#$index[$linecount]=$cur_line;
+		#$linecount++;
 	
 	}
 
@@ -139,16 +139,26 @@ if ($mode eq "register") {
 	#this allows a player/admin to add their own region of the galaxy
 	
 	#if the register request is a network we have never heard of allow it
+	#we should fail if it is the default config
 	if (!$valid_network) { 
-		#Assumption: Network,ID,key,IP Port,dataFilename
-		my $newfilename = $network . $ID . int(rand(1000));
-		open(TDATA, ">>$indexfile")  or die "Index File Error $!";
-			print TDATA "\n$network,$ID,$key,$steamconnect,$newfilename";
-		close(TDATA);
-		print "register|Successfully added $network $ID at $newfilename";
-	} else {
-		print "fail|You cannot create a network that already exists|$network|$ID|$steamconnect|$servername|$mapname"; 
-	}
+		#Assumption: Netw0rk_Name,ID,key,IP Port,dataFilename
+		#if it's the default network reject it because they didnt setup right yet
+		if ($network eq 'Netw0rk_Name') 
+		{			
+			print "fail|You have not correctly configured network in GameSetup.csv |$network|$ID|$steamconnect|$servername|$mapname";
+		 }  else 
+		 {
+			my $newfilename = $network . $ID . int(rand(1000));
+			open(TDATA, ">>$indexfile")  or die "Index File Error $!";
+				print TDATA "\n$network,$ID,$key,$steamconnect,$newfilename";
+			close(TDATA);
+			print "register|Successfully added $network $ID at $newfilename";
+		}	
+		
+	} else 
+		{ 
+			print "fail|You cannot create a network that already exists|$network|$ID|$steamconnect|$servername|$mapname"; 
+		}
 	
 	
 	#print "register|This is an example reply for register";
