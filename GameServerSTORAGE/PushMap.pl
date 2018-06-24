@@ -24,6 +24,7 @@ my $update_timer="";
 my $startup="1";
 my ($commandline) = @ARGV;
 my $updatemode="";
+my $ok='1';
 
 
 #  The tools "webbrowser" name, 
@@ -74,7 +75,7 @@ else {
 			#designed to run /persistently/ until terminated by kill or ctrl-c
 	
 
-			while (1) {
+			while ($ok) {
 				sleep $sleeptime;  	#wait number of minutes until next update
 				Init_files();		#check the datafiles 
 				check_setup();		#make sure the setup didn't change
@@ -118,7 +119,7 @@ sub check_setup(){
 		print "This tool needs to be ran from your maps STORAGE folder and/or where \n";
 		print "the $dumpfile is being created.\n";
 		$setup_data='Network Name,Requested Grid ID #,passkey,update time in minutes'; 
-		open(TDATA, ">>$adminsettings")  or die "File Error $!";;
+		open(TDATA, ">>$adminsettings")  or die "File Error $!";
 			print TDATA $setup_data;
 		close(TDATA);
 	}
@@ -229,17 +230,18 @@ sub sendmap {
 		#here we detect if we need to register, update location, network or spawn a ship etc
        		my ($task, $details)=split(/\|/,$reply,2); 
 		if ($task eq "fail") {
-			print "\n\nAuthentication Failed - ";
+			$ok='';
+			print "\n\nRequest Failed - ";
 			
 			my ($reason, $network, $sectorID, $steamconnect, $servername, $mapname)=split(/\|/,$details,6);
-			print "$reason\nPlease check passkey! \n\n$network Region, Sector/Grid ID: $sectorID\n$servername - $mapname\nJump Address: $steamconnect\n";
+			print "$reason\nPlease check settings\n\n$network Region, Sector/Grid ID: $sectorID\n$servername - $mapname\nJump Address: $steamconnect\n";
 		}
 		if ($task eq "register") { 
 			print "\nRegister request accepted - Please note following details: \n$details";
 		}
 		if ($task eq "reset") {
 			my ($network, $sectorID, $steamconnect)=split(/\|/,$details,3);
-			print "\nReset request accepted - This instance authorised to update:\n $network Region, Sector/Grid ID: $sectorID at $steamconnect";
+			print "\nReset request accepted - This instance authorised to update:\n $network Region, Sector/Grid ID: $sectorID at $steamconnect\n\n";
 		}
 	}
 
